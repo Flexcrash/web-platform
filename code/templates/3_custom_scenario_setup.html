@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js">
+    <script src="//code.jquery.com/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='mysite.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+
+    <title>Setup Custom Scenario</title>
+
+</head>
+<body>
+
+ <!-- Navigation Bar -->
+
+    <div id="nav-placeholder">
+    </div>
+
+<div class="container">
+
+        <h2 align="left"> Setup Custom Scenario </h2>
+
+    <div id="cards-container"></div>
+
+    <div id="create-scenario" class="col-sm">
+        <form name="create-scenario" action="{{ url_for('web.create') }}" method="POST" onsubmit="return validateForm()">
+            <label for="name">Scenario Name </label>
+            <input type="text" id="name" name="name" placeholder="Name"><br><br>
+            <label for="n_users">Number of Players </label>
+            <input type="number" step="1" min="0" id="n_users" name="n_users" placeholder="0" value="0"><br><br>
+            <label for="n_avs">Number of AVs </label>
+            <input type="number" step="1" min="0" id="n_avs" name="n_avs" placeholder="0" value="0"><br><br>
+            <label for="duration">Duration (sec)</label>
+            <input type="number" step="0.1" id="duration" name="duration" placeholder="Duration" placeholder="0.0" value="0.0" min="0.0" onChange="updateSteps()" onclick="updateSteps()">
+            <!-- Replace this with a simple text or label -->
+            <label for="duration" id="corresponding-steps"> </label>
+<!--            <input type="number" id="corresponding-steps" name="corresponding-steps" placeholder="Conversion of time to steps" value="0" readOnly>-->
+            <br><br>
+            <label for="users">Automatically Registered Users</label>
+            <input onkeyup="parse();" type="text" id="users_input" name="users_input" placeholder="Separate usernames with commas" style="width:20vw;">
+            <div id="tags"></div>
+            <input type="hidden" id="users" name="users">
+            <input type="hidden" id="template_id" name="template_id">
+            <input type="hidden" id="creator_user_id" name="creator_user_id" value="{{current_user.user_id}}">
+            <br><br>
+            <input id="submitbtn" type="submit" value="Submit" disabled>
+        </form>
+    </div>
+</div>
+
+<div class="h-100 d-flex align-items-center justify-content-center" id="empty-container">
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script>
+
+        $.get("{{ url_for('web.navbar') }}", function(data){
+	        $("#nav-placeholder").replaceWith(data);
+        });
+
+        $.get("{{ url_for('web.footer') }}", function(data){
+        $("#footer-placeholder").replaceWith(data);
+        });
+
+
+        // Initially Hide the form - we show it only if we click on a template
+        var theForm = document.getElementById('create-scenario');
+        theForm.style.display = "none";
+
+        function makeid(length) {
+        // Take from: https:/ /stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            let counter = 0;
+            while (counter < length) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                counter += 1;
+            }
+            return result;
+        }
+
+        // Set the name of the scenario automatically - one can alwyas create a new one
+        document.getElementById("name").placeholder = makeid(5);
+
+        function updateSteps(){
+            let i = document.getElementById("duration")
+            let theDiv = document.getElementById("corresponding-steps")
+            theDiv.innerHTML = "which corresponds to " + Math.round(i.value / i.step) + " simulation steps"
+        }
+
+        function updateTemplateID(selected_template_id) {
+            document.getElementById("template_id").value = selected_template_id;
+            document.getElementById("submitbtn").disabled = false;
+            // Refresh the UI
+            const images = document.getElementsByTagName("img")
+            for ( var i = 0; i < images.length; i++) {
+                if ( images[i].name.startsWith("template-")) {
+                    if ( images[i].name == "template-"+selected_template_id) {
+                        images[i].style.border = "0.5vw solid blue";
+                    } else {
+                        images[i].style.border = "initial";
+                    }
+                }
+            }
+        }
+
+        function updateFormPosition(containerDiv){
+            containerDiv.appendChild(theForm);
+            // Make it visible again
+            theForm.style.display = '';
+        }
+
+        function showImage(image_url_and_template_id) {
+            let image_url = image_url_and_template_id[0]
+            let template_id = image_url_and_template_id[1]
+
+            var img = document.createElement('img');
+            img.name = "template-" + template_id
+            img.src = image_url
+            img.style.cssText = 'max-width:100%; width: 400px; height:auto;'
+
+            // Create the row
+            let row = document.createElement('div')
+            row.classList.add('row')
+
+            let btn = document.createElement("radio");
+            btn.classList.add('col-4');
+
+            // Extract the ID from the file name, probably this could be passed directly to the flask template
+            // let temp_id = image_url.split('/').pop().split('.')[0]
+            // Bind a function that will invoke updateTemplate with the right parameter
+            btn.appendChild(img)
+
+            let newCard = document.createElement('div');
+            newCard.classList.add('col-7');
+            newCard.classList.add('overflow-auto');
+
+
+            // Append the cols to the row
+            row.appendChild(btn);
+            row.appendChild(newCard)
+
+            // Append the row to the cardsContainer
+            cardsContainer.appendChild(row);
+
+            btn.onclick = function() {
+                updateTemplateID(template_id);
+                updateFormPosition(newCard)
+            };
+        }
+
+        // List of tuples
+        data = {{ scenario_template_image_urls_and_ids | tojson}}
+        cardsContainer = document.getElementById('cards-container');
+        data.forEach(showImage);
+
+        function validateForm() {
+
+          var name = document.forms["create-scenario"]["name"].value;
+          var suggested_name = document.forms["create-scenario"]["name"].placeholder;
+          if (name == "" && suggested_name == "") {
+            // suggested_name should never be empty unless user breaks the JS
+            alert("Scenario name cannot be empty");
+            return false;
+          }
+
+          if (name == "" && suggested_name != "") {
+            name = suggested_name
+          }
+
+
+
+          var avs = parseInt(document.forms["create-scenario"]["n_avs"].value);
+          var players = parseInt(document.forms["create-scenario"]["n_users"].value);
+
+          if (players + avs < 1) {
+            alert("A scenario must have at least one vehicle");
+            return false;
+          }
+
+          var duration = parseFloat(document.forms["create-scenario"]["duration"].value);
+          if (duration < 0.1) {
+            alert("Duration is invalid");
+            return false;
+          }
+
+          var template_id = document.forms["create-scenario"]["template_id"].value;
+          if (template_id == "Template ID") {
+            alert("Please select scenario template");
+            return false;
+          }
+
+           else {
+            return confirm("Name: " + name + "\nNumber of Players: " + players + "\nNumber of AVs: " + avs + "\nDuration: " + duration + "\nTemplate ID: " + template_id + "\nAre you sure you want to create a scenario with these parameters?");
+
+        }
+
+        }
+
+        $( function() {
+            var allUsers = [
+                {% for user in all_users %}
+                    "{{user}}",
+                {% endfor %}
+            ];
+
+            $( "#users_input" ).autocomplete({
+                source: allUsers
+            });
+        } );
+
+    registered_users = []
+    all_users = {{ all_users | tojson }}
+
+    function parse() {
+        var tag_input = document.getElementById("users_input");
+        var tags = document.getElementById("tags");
+        //
+        var input_val = tag_input.value.trim();
+        var no_comma_val = input_val.replace(/,/g, "");
+        // TODO Make sure duplicates do not endup here
+        if (input_val.slice(-1) === "," && no_comma_val.length > 0) {
+            var new_tag = compile_tag(no_comma_val);
+            tags.appendChild(new_tag);
+            var reg_user_id = all_users[no_comma_val];
+            registered_users.push(reg_user_id);
+            tag_input.value = "";
+            document.getElementById("users").value = registered_users;
+        }
+    }
+
+    function compile_tag(tag_content) {
+        var tag = document.createElement("h5");
+        //
+        var text = document.createElement("span");
+        text.setAttribute("class", "badge badge-success");
+        text.innerHTML = tag_content;
+        //
+        var remove = document.createElement("i");
+        remove.setAttribute("class", "fa fa-remove");
+        remove.setAttribute("id", "remove");
+        // This should also remove the value from the registered_users!
+        remove.onclick = function() {
+            var reg_user_id = all_users[tag_content];
+            console.log("remove user " + reg_user_id);
+            // Remove the tag from the list
+            this.parentNode.remove();
+            // Remove the user from the registered_users
+            const index = registered_users.indexOf(reg_user_id);
+            if (index > -1) { // only splice array when item is found
+                registered_users.splice(index, 1); // 2nd parameter means remove one item only
+            }
+            document.getElementById("users").value = registered_users;
+        };
+        //
+        tag.appendChild(remove);
+        tag.appendChild(text);
+        //
+        return tag;
+    }
+
+    // Make sure to update updateSteps()
+    updateSteps()
+
+</script>
+
+</body>
+</html>

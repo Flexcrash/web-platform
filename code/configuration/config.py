@@ -7,7 +7,7 @@ TESTING = False
 DEBUG = False
 FLASK_ENV = 'development'
 # TODO Read the configuration from file or via some env variable instead?
-SECRET_KEY = "fl3xCr@shh"
+SECRET_KEY = None
 DATABASE_NAME = 'flexcrash.db'
 # The list of extensions allowed to be uploaded as scenario template
 ALLOWED_EXTENSIONS = ['xml']
@@ -21,7 +21,7 @@ MAX_INIT_SPEED_M_S = 25.0 # Circa 90 Km/h - 36.0 # Circa 130 Km/h
 VEHICLE_LENGTH = 4.3
 VEHICLE_WIDTH = 1.8
 # Location of the generated images visualizing the templates
-# TODO Can we ensure the folders exists directly here?
+# TODO Can we ensure the folders exist directly here?
 IMAGES_FOLDER = "static"
 TEMPLATE_IMAGES_FOLDER = os.path.join(IMAGES_FOLDER, "scenario_template_images")
 SCENARIO_IMAGES_FOLDER = os.path.join(IMAGES_FOLDER, "scenario_images")

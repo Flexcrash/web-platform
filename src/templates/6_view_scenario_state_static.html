@@ -1,0 +1,83 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Scenario State {% endblock %}
+{% block content %}
+    <!-- TODO Dynamically update the things if there is more than one. But what;s the meaning of prev and next then -->
+    <div id="cards-container" class="container">
+        <div class="card center">
+            <div class="button-box col-lg-12">
+                {% if prev_state_url %}
+                    <a href="{{ prev_state_url }}" class="btn btn-primary" role="button">&laquo; Show Previous State</a>
+                {% else %}
+                    <a aria-disabled="true" class="btn btn-primary disabled" role="button">&laquo; Show Previous State</a>
+                {% endif %}
+                    <a href="{{ scenario_url }}" class="btn btn-primary" role="button">Back to Scenario Overview</a>
+                {% if next_state_url %}
+                    <a href="{{ next_state_url }}" class="btn btn-primary" role="button">Show Next State &raquo;</a>
+                {% else %}
+                    <a class="btn btn-primary disabled" role="button">Show Next State &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card center">
+            <img src="{{ rendered_state_url }}"/>
+        </div>
+
+        <div class="card center">
+            <h2>Vehicle' details</h2>
+            <table>
+                <tbody>
+                    {% for vehicle_state in vehicle_states %}
+                        <tr>
+                            <td>Driver's name</td>
+                            <td>
+                                {{ vehicle_state.username }}
+                                {% if vehicle_state.is_current_user %}
+                                (This is you)
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Driver's color</td>
+                            <td style="background-color:{{ vehicle_state.color }}"></td>
+                        </tr>
+                        <tr>
+                            <td>Status</td><td>{{ vehicle_state.status.value }}</td>
+                        </tr>
+                        <tr>
+                            <td>Speed </td><td>{{ (vehicle_state.speed_ms * 3.6) | int }} Km/h</td>
+                        </tr>
+                        <tr>
+                            <td>Acceleration</td>
+                            <td>The vehicle is
+                                {% if vehicle_state.acceleration_m2s > 0.0 %}
+                                accelerating
+                                {% else %}
+                                braking
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr><td><p></p></td><td><p></p></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card center">
+            <div class="button-box col-lg-12">
+                {% if prev_state_url %}
+                    <a href="{{ prev_state_url }}" class="btn btn-primary" role="button">&laquo; Show Previous State</a>
+                {% else %}
+                    <a aria-disabled="true" class="btn btn-primary disabled" role="button">&laquo; Show Previous State</a>
+                {% endif %}
+                    <a href="{{ scenario_url }}" class="btn btn-primary" role="button">Back to Scenario Overview</a>
+                {% if next_state_url %}
+                    <a href="{{ next_state_url }}" class="btn btn-primary" role="button">Show Next State &raquo;</a>
+                {% else %}
+                    <a class="btn btn-primary disabled" role="button">Show Next State &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

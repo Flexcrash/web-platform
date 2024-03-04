@@ -1,0 +1,51 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Start {% endblock %}
+{% block content %}
+    <div class="container">
+
+        <h2> Welcome, {{ current_user.username }} </h2>
+
+        <div class="row">
+            <div class="card mt-2">
+                <div class="card-body">
+                   <a href="{{ url_for('web.created_by_you') }}" class="btn btn-info" role="button">Scenarios Created by You</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <a href="{{ url_for('web.you_are_in') }}" class="btn btn-info" role="button">Scenarios You Are In</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <a href="{{ url_for('web.other_scenarios') }}" class="btn btn-info" role="button">Other Scenarios</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <a href="{{ url_for('web.join_scenario') }}" class="btn btn-info" role="button">Join Active Scenarios</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <a href="{{url_for('web.create_scen')}}" class="btn btn-info" role="button">Create Custom Scenario</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

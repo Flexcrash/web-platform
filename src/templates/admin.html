@@ -1,0 +1,97 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %}Admin Page{% endblock %}
+{% block content %}
+
+    <div class="row justify-content-center">
+        <h2 align="center">All Scenarios</h2>
+        <div class="col-auto">
+            <table class="table table-responsive">
+                <tr>
+                    <th>Scenario ID</th><th>TBD</th><th colspan="2">Actions</th>
+                </tr>
+                {% for scenario_dto in scenario_dtos %}
+                    <tr>
+                        <td>{{scenario_dto[1]}}</td>
+                        <td>{{scenario_dto[0]}}</td>
+                        <td>
+                            <button class="btn btn-info"
+                                        onclick="window.location.href='{{ url_for('web.scenario_overview',scenario_id=scenario_dto[1]) }}'">
+                                    Open
+                            </button>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('web.admin.admin_page') }}" method="POST">
+                                <input type="hidden" id="scenario_id" name="scenario_id" value="{{scenario_dto[1]}}">
+                                <input type="hidden" id="delete_scenario" name="delete_scenario" value="delete_scenario">
+                                <input type="submit" value="Delete" class="btn btn-info" role="button">
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <h2 align="center">All Scenario Templates</h2>
+        <div class="col-auto">
+            <table class="table table-responsive">
+                <tr>
+                    <th>Template ID</th><th>Enabled</th>
+                </tr>
+                {% for scenario_template_dto in scenario_template_dtos %}
+                    <tr>
+                        <td>{{ scenario_template_dto[0] }}</td>
+                        <td>
+                            <form id="scenario_template_{{scenario_template_dto[0]}}" name="scenario_template_{{scenario_template_dto[0]}}" action="{{ url_for('web.admin.admin_page') }}" method="POST">
+                                <input type="hidden" id="scenario_template_id" name="scenario_template_id" value="{{scenario_template_dto[0]}}">
+                                {% if scenario_template_dto[1] %}
+                                     <input id="is_enabled_{{scenario_template_dto[0]}}" name="is_enabled_{{scenario_template_dto[0]}}" type="checkbox" checked onChange="this.form.submit()"/>
+                                {% else %}
+                                     <input id="is_enabled_{{scenario_template_dto[0]}}" name="is_enabled_{{scenario_template_dto[0]}}" type="checkbox" onChange="this.form.submit()"/>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <!-- Show the users, not the bots -->
+        <h2 align="center">Users</h2>
+        <div class="col-auto">
+            <table class="table table-responsive">
+                <tr>
+                    <td colspan="3">
+                        <a href=" {{ url_for('web.admin.register_user') }}" class="btn btn-default">Register new user</a>
+                    </td>
+                </tr>
+                <tr>
+                    <th>User ID</th><th>Username</th><th>Admin</th>
+                </tr>
+                {% for user_dto in user_dtos %}
+                    <tr>
+                        <td> {{ user_dto[0]}} </td>
+                        <td> {{ user_dto[1]}} </td>
+                        <td>
+                            <form id="user_{{user_dto[0]}}" name="user_{{user_dto[0]}}" action="{{ url_for('web.admin.admin_page') }}" method="POST">
+                                <input type="hidden" id="user_id" name="user_id" value="{{user_dto[0]}}">
+                                {% if user_dto[2] %}
+                                    <input id="is_admin_{{user_dto[0]}}" name="is_admin_{{user_dto[0]}}" type="checkbox" checked onChange="this.form.submit()"/>
+                                {% else %}
+                                    <input id="is_admin_{{user_dto[0]}}" name="is_admin_{{user_dto[0]}}" type="checkbox" onChange="this.form.submit()"/>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+
+    </div>
+
+{% endblock %}

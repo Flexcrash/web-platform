@@ -1,0 +1,11 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "errors/error.html" %}
+{% block page_title %}Not Found{% endblock %}
+{% block content %}
+    <div class="container" style="padding-top: 10vw;">
+        <div class="alert alert-warning" role="alert">
+            <h1 align="center">Not Found</h1>
+            <p align="center">The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+        </div>
+    </div>
+{% endblock %}

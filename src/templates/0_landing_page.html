@@ -1,0 +1,24 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %}Welcome to Flexcrash{% endblock %}
+{% block navbar %}
+{# Make sure we do not render the standard navigation bar on this page #}
+{% endblock %}
+{% block content %}
+		<div class="section">
+			<div class="container">
+				<div class="row justify-content-center">
+					<div class="col-12 text-center align-self-center py-5">
+						<div class="section pb-5 pt-5 pt-sm-2 text-center">
+							<img class=" preload-me" style="height: 150px; width: auto; margin-top: -50px;" src="https://flexcrash-project.eu/wp-content/uploads/2022/11/FLEXCRASH-LOGO_200px_bottom-bar.png" srcset="https://flexcrash-project.eu/wp-content/uploads/2022/11/FLEXCRASH-LOGO_200px_bottom-bar.png 200w, https://flexcrash-project.eu/wp-content/uploads/2022/11/Flexcrash_White-logo.png 850w" width="200" height="100" sizes="200px" alt="flexcrash-project"/>
+
+							<h1>Welcome to the Flexcrash Web Platform!</h1>
+							<p><a href="{{ url_for('web.login') }}" class="btn btn-mybutton" role="button">Login</a></p>
+
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+{% endblock %}

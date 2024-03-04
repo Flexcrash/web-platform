@@ -1,0 +1,55 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Current Simulation {% endblock %}
+{% block content %}
+    <script type="text/javascript" src="d3.v3.min.js"></script>
+    <script type="text/javascript" src="mpld3.v0.2.js"></script>
+
+
+            <div class="container-fluid">
+                <div class="row">
+                    <div class=card>
+                        <div class="card-body" id="plot">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="row" id="vision-radius">
+                        <div class="card w-50">
+                            Vision Radius
+                            <div class="slidecontainer">
+                                <input type="range" min="1" max="100" value="50" class="slider" id="visionRadius">
+                            </div>
+                        </div>
+                    </div>
+            </div>
+
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        <div id="demo"></div>
+
+                        <input id="myTextInput" value="">
+
+                       <p><br>Drag the slider to select the number</p>
+
+                        <div class="slider">
+                            <input type="range" min="0" max="200" value="100" oninput="rangeValue.innerText = this.value">
+                            <p id="rangeValue">100</p>
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        Speed (min/max)
+                        <div class="slidecontainer">
+                            <input type="range" min="1" max="100" value="50" class="slider" id="speed">
+                        </div>
+                        <button type="button" class="button">Refresh</button>
+                        <button type="button" class="button">Submit</button>
+                    </div>
+                </div>
+            </div>
+    <script>
+        {{ plot_html }}
+    </script>
+{% endblock %}

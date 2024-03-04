@@ -1,0 +1,28 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %}Register New User{% endblock %}
+{% block content %}
+		<div class="row justify-content-center">
+			<div class="col-auto">
+				<h2 class="mb-4 pb-3">Register a new user</h2>
+				<form autocomplete="off" action="{{ url_for('web.admin.register_user') }}" method="POST">
+					<div class="form-group">
+						<input autocomplete="false" type="text" name="reg_username" class="form-style" placeholder="Username" id="reg_username" autocomplete="off">
+						<i class="input-icon uil uil-user"></i>
+					</div>
+					<div class="form-group mt-2">
+						<input autocomplete="false" type="email" name="reg_email" class="form-style" placeholder="Your Email" id="reg_email" autocomplete="off">
+						<i class="input-icon uil uil-at"></i>
+					</div>
+					<div class="form-group mt-2">
+						<input autocomplete="false" type="password" name="reg_pass" class="form-style" placeholder="Your Password" id="reg_pass" autocomplete="off">
+						<i class="input-icon uil uil-lock-alt"></i>
+					</div>
+					<input type="submit" value="Submit" class="btn mt-4">
+					<a href="{{ url_for('web.admin.admin_page') }}" class="btn mt-4">Cancel</a>
+				</form>
+			</div>
+		</div>
+
+		<script> </script>
+{% endblock %}

@@ -1,0 +1,4 @@
+[run]
+omit = tests/*, external_libraries/*, commonroad_rp/*, configuration/manual_testing_config.py, manual-testing.py, run_multi_motion_planner_system.py
+[coverage:report]
+skip_empty = true

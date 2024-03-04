@@ -1,0 +1,30 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %}Error{% endblock %}
+{# Make sure we do not render the standard navigation bar on this page if the user is not authenticated #}
+{% block navbar %}
+    {% if is_user_authenticated %}
+        {{ super() }}
+    {% else %}
+        <style>
+          body {
+            background-color: #191919;
+          }
+        </style>
+        <nav class="navbar navbar-expand-sm sticky-top" style="background-color: #252525;">
+            <div class="container">
+                <a class="navbar-brand" href="{{ url_for('web.index') }}">
+                    <img class=" preload-me" src="https://flexcrash-project.eu/wp-content/uploads/2022/11/FLEXCRASH-LOGO_200px_bottom-bar.png" srcset="https://flexcrash-project.eu/wp-content/uploads/2022/11/FLEXCRASH-LOGO_200px_bottom-bar.png 200w, https://flexcrash-project.eu/wp-content/uploads/2022/11/Flexcrash_White-logo.png 850w" width="200" height="100" sizes="200px" alt="flexcrash-project"/>
+                </a>
+            </div>
+        </nav>
+    {% endif %}
+{% endblock %}
+{% block content %}
+    <div class="container" style="padding-top: 10vw;">
+        <div class="alert alert-warning" role="alert">
+            <h1 align="center">Error</h1>
+            <p align="center">Your request cannot be process at this time. </p>
+        </div>
+    </div>
+{% endblock %}

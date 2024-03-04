@@ -1,0 +1,117 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Scenarios You Are In {% endblock %}
+{% block content %}
+<div class="row">
+    <h2 align="center"> Scenarios You Are In</h2>
+    <p align="center">This page lists all the scenarios in which you are or have been driving.</p>
+</div>
+
+<div id="active" class="container">
+    <h4 style="padding-top: 1rem;">Active Scenarios</h4>
+    <div id="active-container" class="container">
+    </div>
+</div>
+
+<div id="waiting" class="container">
+    <h4 style="padding-top: 2rem;">Waiting Scenarios</h4>
+    <div id="waiting-container" class="container">
+    </div>
+</div>
+
+<div id="done" class="container">
+    <h4 style="padding-top: 2rem;">Closed Scenarios</h4>
+    <div id="done-container" class="container">
+    </div>
+</div>
+
+<div class="h-100 d-flex align-items-center justify-content-center" id="empty-container">
+</div>
+
+<div class="h-100 d-flex align-items-center justify-content-center" id="link-container">
+</div>
+
+<script>
+    function create_buttons(value) {
+        // Create a multiline string template with current values each time
+        cardHtml = `
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h4>Scenario ${value[1]} - ${value[0]}</h4>
+                    <table>
+                        <tr>
+                            <td>
+                                <button class="btn btn-info" onclick="window.location.href='{{ url_for("web.scenario_overview", scenario_id=value) }}${value[1]}';"> Go to Scenario </button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        return cardHtml;
+    }
+
+    valuesCards1 = {{scenarios_active | tojson}}
+    valuesCards2 = {{scenarios_waiting | tojson}}
+    valuesCards3 = {{scenarios_done | tojson}}
+
+    activeContainer = document.getElementById('active');
+    waitingContainer = document.getElementById('waiting');
+    doneContainer = document.getElementById('done');
+
+    cardsContainer1 = document.getElementById('active-container');
+    cardsContainer2 = document.getElementById('waiting-container');
+    cardsContainer3 = document.getElementById('done-container');
+
+    messageContainer = document.getElementById('empty-container');
+    linkContainer = document.getElementById('link-container');
+
+    if (Object.keys(valuesCards1).length === 0) {
+        cardsContainer1.innerHTML = "<p style='color: #191919;'><br>You are not in any active scenarios.</p>"
+    }
+
+    if (Object.keys(valuesCards2).length === 0) {
+        cardsContainer2.innerHTML = "<p style='color: #191919;'><br>You are not in any waiting scenarios.</p>"
+    }
+
+    if (Object.keys(valuesCards3).length === 0) {
+        cardsContainer3.innerHTML = "<p style='color: #191919;'><br>You are not in any closed scenarios.</p>"
+    }
+
+    for (let value of Object.values(valuesCards1)) {
+         let newCard = document.createElement('DIV');
+        newCard.classList.add('col'); // Add the 'col' class for each card
+        // Add products-cards class to new element
+        newCard.classList.add('products-cards');
+        // Create a multiline string template with current values each time
+        cardHtml = create_buttons(value)
+        // Append the new element to the cardsContainer element in DOM
+        cardsContainer1.appendChild(newCard);
+        // Inject the template html on DOM's new append item
+        newCard.innerHTML = cardHtml;
+    }
+
+    for (let value of Object.values(valuesCards2)) {
+        let newCard = document.createElement('DIV');
+        // Add products-cards class to new element
+        newCard.classList.add('products-cards');
+        // Create a multiline string template with current values each time
+        cardHtml = create_buttons(value)
+        // Append the new element to the cardsContainer element in DOM
+        cardsContainer2.appendChild(newCard);
+        // Inject the template html on DOM's new append item
+        newCard.innerHTML = cardHtml;
+    }
+    for (let value of Object.values(valuesCards3)) {
+        let newCard = document.createElement('DIV');
+        // Add products-cards class to new element
+        newCard.classList.add('products-cards');
+        // Create a multiline string template with current values each time
+        cardHtml = create_buttons(value)
+        // Append the new element to the cardsContainer element in DOM
+        cardsContainer3.appendChild(newCard);
+        // Inject the template html on DOM's new append item
+        newCard.innerHTML = cardHtml;
+    }
+</script>
+{% endblock %}

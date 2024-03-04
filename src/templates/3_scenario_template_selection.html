@@ -1,0 +1,118 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Setup Custom Scenario {% endblock %}
+{% block content %}
+<div class="container">
+
+        <h2 align="left"> Setup Custom Scenario </h2>
+
+    <div id="cards-container"></div>
+
+    <div id="create-scenario" class="col-sm-8">
+        <form name="create-scenario" action="{{ url_for('web.select_template') }}" method="POST">
+            <h3>Template description:</h3>
+            <p id="template-description"></p>
+            <!-- Hidden fields -->
+            <input type="hidden" id="scenario_template_id" name="scenario_template_id">
+            <input type="hidden" id="creator_user_id" name="creator_user_id" value="{{current_user.user_id}}">
+            <input id="submitbtn" type="submit" value="Select Template">
+        </form>
+    </div>
+</div>
+
+<div class="h-100 d-flex align-items-center justify-content-center" id="empty-container">
+</div>
+
+<script>
+        // Initially Hide the form - we show it only if we click on a template
+        var theForm = document.getElementById('create-scenario');
+        theForm.style.display = "none";
+
+        function updateTemplateID(selected_template_id) {
+            document.getElementById("scenario_template_id").value = selected_template_id;
+            // Refresh the UI
+            const images = document.getElementsByTagName("img")
+            for ( var i = 0; i < images.length; i++) {
+                if ( images[i].name.startsWith("template-")) {
+                    if ( images[i].name == "template-"+selected_template_id) {
+                        images[i].style.border = "0.5vw solid blue";
+                    } else {
+                        images[i].style.border = "initial";
+                    }
+                }
+            }
+        }
+
+        function updateFormPosition(containerDiv){
+            containerDiv.appendChild(theForm);
+            // Make it visible again
+            theForm.style.display = '';
+        }
+
+        function updateFormDescription(template_description){
+            var description = template_description;
+            if (!description) {
+                // https://stackoverflow.com/questions/154059/how-do-i-check-for-an-empty-undefined-null-string-in-javascript
+                // strValue was empty string, false, 0, null, undefined, ...
+                description = "There is no description for this template";
+            }
+            document.getElementById("template-description").innerText = description;
+        }
+
+        function showImage(image_url_and_template) {
+            let image_url = image_url_and_template[0]
+            let template_id = image_url_and_template[1]
+            let template_description = image_url_and_template[2]
+
+            var img = document.createElement('img');
+            img.name = "template-" + template_id
+            img.src = image_url
+            img.style.cssText = 'max-width:100%; width: 400px; height:auto;'
+
+            // Create the row
+            let row = document.createElement('div')
+            row.classList.add('row')
+
+            let btn = document.createElement("radio");
+            btn.classList.add('col-4');
+
+            // Extract the ID from the file name, probably this could be passed directly to the flask template
+            // let temp_id = image_url.split('/').pop().split('.')[0]
+            // Bind a function that will invoke updateTemplate with the right parameter
+            btn.appendChild(img)
+
+            let newCard = document.createElement('div');
+            newCard.classList.add('col-7');
+            newCard.classList.add('overflow-auto');
+
+
+            // Append the cols to the row
+            row.appendChild(btn);
+            row.appendChild(newCard)
+
+            // Append the row to the cardsContainer
+            cardsContainer.appendChild(row);
+
+            btn.onclick = function() {
+                updateTemplateID(template_id);
+                updateFormDescription(template_description);
+                updateFormPosition(newCard);
+                row.scrollIntoView({
+                    behavior: "auto",
+                    block: "center",
+                    inline: "center",
+                });
+            };
+        }
+
+        // List of tuples
+        data = {{ scenario_template_image_urls_and_ids | tojson}}
+        cardsContainer = document.getElementById('cards-container');
+        data.forEach(showImage);
+
+
+
+
+
+</script>
+{% endblock %}

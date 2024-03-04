@@ -1,0 +1,462 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Interactive Scenario State View {% endblock %}
+{% block content %}
+    <!-- Show the vehicles and the planner/selected trajectories -->
+    <div id="cards-container" class="container">
+        <div class="card center scenario-viz">
+            {{embeddable_html | safe }}
+        </div>
+    </div>
+
+    <!-- Visualize the main info about vehicles current state -->
+    <div class="row" id="vehicle-current-state">
+        <p align="center">
+            You are traveling at <mark id="current-speed-km-h">{{ current_speed_km_h }}</mark>Km/h.
+        </p>
+        <p align="center">
+            For the next <mark id="drive-for-sec">{{ initial_drive_for }}</mark> (out of <mark id="plan-for-sec">{{initial_plan_for_sec}}</mark>) second(s),
+            you plan to
+            <mark id="action-speed"> {{ initial_action_speed }} </mark> while
+            <mark id="action-lat"> {{ initial_action_lat }} </mark>
+            <mark id="action-time"> {{ initial_action_time }} </mark>
+            and
+            <mark id="action-snap-to-road"> {{ initial_action_snap_to_road }} </mark>.
+        </p>
+        <p align="center">
+            &nbsp;
+            <mark id="infeasible-plan-warning" style="display:none; background-color:rgba(255,0,0,0.3);">
+                However, your trajectory is not feasible because &nbsp; <span id="infeasibility-reason"></span>
+            </mark>
+            <mark id="waiting-for-trajectory" style="display:none"> Computing your trajectory ...</mark>
+        </p>
+    </div>
+
+    <!-- Action space -->
+    <div class="row justify-content-center">
+        <div class="col-auto">
+            <table class="table table-responsive">
+                <thead>
+                    <tr>
+                        <td >What would like to do now?</td>
+                        <td>
+                            <form name="select-trajectory" action='/drive' method="POST">
+                                <input type="hidden" name="v" id="sampling_v" value="{{ v }}">
+                                <input type="hidden" name="d" id="sampling_d" value="{{ d }}">
+                                <input type="hidden" name="t" id="sampling_t" value="{{ t }}">
+                                <input type="hidden" name="h" id="sampling_h" value="{{ h }}">
+                                <input type="hidden" name="p" id="sampling_p" value="{{ p }}">
+
+                                <input type="hidden" name="planned_states" id="planned_states">
+
+                                <input type="hidden" name="initial_timestamp" id="initial_timestamp" value="{{ initial_timestamp }}">
+                                <input type="hidden" name="scenario_id" id="scenario_id" value="{{ scenario_id }}">
+
+                                <input type="reset" value="Reset" id="reset_button" onclick="resetUserInput()">
+                                <input type="submit" value="Submit" id="submit_button">
+                            </form>
+
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><button class="btn btn-primary" id="go-slow" title="go-slow" onclick='go_slow();return false;'>I want to decelerate</button></td>
+                        <td><button class="btn btn-primary" id="go-fast" title="go-fast" onclick='go_fast();return false;'>I want to accelerate</button></td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn btn-primary" id="go-left" title="go-left" onclick="go_left();return false;">I want to move more on the left</button></td>
+                        <td><button class="btn btn-primary" id="go-right" title="go-right" onclick="go_right();return false;">I want to move more on the right</button></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <button class="btn btn-primary" id="less-time" title="go-sharp" onclick="less_time();return false;" title="This might cause sharper turns">
+                                Take less time to turn and accelerate
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn btn-primary" id="more-time" title="go-smooth" onclick="more_time();return false;" title="This might cause smoother turns">
+                                Take more time to turn and accelerate
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" id="snap_road_true" {{ "checked" if snap_to_road }} name="snap_to_road" onchange="get_the_trajectory_from_API({})">
+                            <label for="snap_road_true">I want to follow the road</label>
+                        </td>
+                        <td>
+                            <input type="radio" id="snap_road_false" name="snap_to_road" {{ "checked" if not snap_to_road }} onchange="get_the_trajectory_from_API({})">
+                            <label for="snap_road_false">I want to follow drive free</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn btn-primary" id="plan-less" title="plan-less" onclick="plan_less();return false;">I want to plan a shorter drive</button></td>
+                        <td><button class="btn btn-primary" id="plan-more" title="plan-more" onclick="plan_more();return false;">I want to plan a longer drive</button></td>
+                    </tr>
+                    <tr>
+                        <td><button class="btn btn-primary" id="drive-less" title="drive-less" onclick="drive_less();return false;">I want to drive less</button></td>
+                        <td><button class="btn btn-primary" id="drive-more" title="drive-more" onclick="drive_more();return false;">I want to drive more</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+        // This function alters the embedded html to make it auto-resizable. Really, this should be placed into a plugin
+        function autosize_figure(){
+            // TODO We assume there's one and only one of such elements
+            var the_main_svg = document.getElementsByClassName("mpld3-figure")[0];
+            the_main_svg.removeAttribute("width")
+            the_main_svg.removeAttribute("height")
+            // TODO Hardcoded values
+            the_main_svg.setAttribute("viewBox", "50 70 700 180")
+            // TODO We assume there's one and only one of such elements
+            var toolbar_svg = document.getElementsByClassName("mpld3-toolbar")[0];
+            toolbar_svg.setAttribute("x", "50")
+            toolbar_svg.setAttribute("y", "235")
+        };
+
+        // Global variables
+        delta_speed =  0.28;
+        min_speed   =  0.0;
+        max_speed   =  (90.0 / 3.6);
+
+        delta_d     =  0.5;
+        min_d       = -6.1;
+        max_d       = +6.1;
+
+        delta_t     =  0.1;
+        min_t       =  1.5;
+
+        delta_h     = 0.1;
+        min_h       = 2.0;
+        max_h       = 10.0;
+
+        delta_p     =  0.1;
+        min_p       =  1.0;
+
+
+        var refresh_all_inputs = function(){
+            // Reenable all the inputs! - Maybe use a for loop over buttons inside the control table...
+            var go_slow_btn = document.getElementById("go-slow");
+            var go_fast_btn = document.getElementById("go-fast");
+            var go_left_btn = document.getElementById("go-left");
+            var go_right_btn = document.getElementById("go-right");
+            var less_time_btn = document.getElementById("less-time");
+            var more_time_btn = document.getElementById("more-time");
+            var plan_less_btn = document.getElementById("plan-less");
+            var plan_more_btn = document.getElementById("plan-more");
+            var drive_less_btn = document.getElementById("drive-less");
+            var drive_more_btn = document.getElementById("drive-more");
+
+            go_slow_btn.removeAttribute('disabled');
+            go_fast_btn.removeAttribute('disabled');
+            go_left_btn.removeAttribute('disabled');
+            go_right_btn.removeAttribute('disabled');
+            less_time_btn.removeAttribute('disabled');
+            more_time_btn.removeAttribute('disabled');
+            plan_less_btn.removeAttribute('disabled');
+            plan_more_btn.removeAttribute('disabled');
+            drive_less_btn.removeAttribute('disabled');
+            drive_more_btn.removeAttribute('disabled');
+
+            // Check whether we need to disable some inputs related to speed
+            var current_sampling_v = parseFloat(document.getElementById("sampling_v").value);
+            var current_sampling_d = parseFloat(document.getElementById("sampling_d").value);
+            var current_sampling_t = parseFloat(document.getElementById("sampling_t").value);
+            var current_sampling_h = parseFloat(document.getElementById("sampling_h").value);
+            var current_sampling_p = parseFloat(document.getElementById("sampling_p").value);
+
+            // Disable the inputs that need to be disabled
+            var max_t = current_sampling_h;
+            var max_p = current_sampling_h;
+
+            if( current_sampling_v - delta_speed < min_speed){
+                go_slow_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_v + delta_speed > max_speed){
+                go_fast_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_d - delta_d < min_d){
+                go_right_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_d + delta_d > max_d){
+                go_left_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_t - delta_t < min_t){
+                less_time_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_t + delta_t > max_t){
+                more_time_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_h - delta_h < min_h){
+                plan_less_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_h + delta_h > max_h){
+                plan_more_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_p - delta_p < min_p){
+                drive_less_btn.setAttribute('disabled', '');
+            }
+
+            if( current_sampling_p + delta_p > max_p){
+                drive_more_btn.setAttribute('disabled', '');
+            }
+        }
+
+        function plan_less(){
+            get_the_trajectory_from_API({'h': -1.0 * delta_h});
+            refresh_all_inputs();
+        }
+
+        function plan_more(){
+            get_the_trajectory_from_API({'h': +1.0 * delta_h});
+            refresh_all_inputs();
+        }
+
+        function drive_less(){
+            get_the_trajectory_from_API({'p': -1.0 * delta_p});
+            refresh_all_inputs();
+        }
+
+        function drive_more(){
+            get_the_trajectory_from_API({'p': +1.0 * delta_p});
+            refresh_all_inputs();
+        }
+
+        function more_time(){
+            get_the_trajectory_from_API({'t': +1.0 * delta_t});
+            refresh_all_inputs();
+        }
+
+        function less_time(){
+            get_the_trajectory_from_API({'t': -1.0 * delta_t});
+            refresh_all_inputs();
+        }
+
+        function go_right(){
+            get_the_trajectory_from_API({'d': -1.0 * delta_d});
+            refresh_all_inputs();
+        }
+
+        function go_left(){
+            get_the_trajectory_from_API({'d': +1.0 * delta_d});
+            refresh_all_inputs();
+        }
+
+        function go_slow(){
+            get_the_trajectory_from_API({"v": -1.0 * delta_speed});
+            refresh_all_inputs();
+        }
+
+        function go_fast(){
+            get_the_trajectory_from_API({"v": 1.0 * delta_speed});
+            refresh_all_inputs();
+        }
+
+        function get_snap_to_road(){
+            let trueRadioButton = document.getElementById('snap_road_true');
+            if (trueRadioButton.checked){
+                return 1;
+            }
+            return 0;
+        };
+
+        async function resetUserInput(){
+            document.getElementById('sampling_v').value = {{ v }};
+            document.getElementById('sampling_h').value = {{ h }};
+            document.getElementById('sampling_d').value = {{ d }};
+            document.getElementById('sampling_p').value = {{ p }};
+            document.getElementById('sampling_t').value = {{ t }};
+            document.getElementById('action-snap-to-road').innerText = "{{ initial_action_snap_to_road }}";
+            return await get_the_trajectory_from_API({});
+        };
+
+        var update_message = function(props){
+            // Update the UI with the sampled parameters
+            const sampling_vars = props['sampling_vars'];
+            const current_speed_m_s = props['current_speed'];
+            const snap_to_road = props['snap_to_road'];
+            const response = props['response'];
+
+            document.getElementById("drive-for-sec").innerText = sampling_vars["p"].toFixed(1);
+            document.getElementById("plan-for-sec").innerText = sampling_vars["h"].toFixed(1);
+
+            if (sampling_vars["v"] == current_speed_m_s ){
+                document.getElementById("action-speed").innerText = "maintain your speed";
+            } else if (sampling_vars["v"] > current_speed_m_s ) {
+                document.getElementById("action-speed").innerText = "accelerate to " + parseInt(sampling_vars["v"] * 3.6) + " Km/h";
+            } else {
+                document.getElementById("action-speed").innerText = "decelerate to " + parseInt(sampling_vars["v"] * 3.6) + " Km/h";
+            }
+
+            if (sampling_vars["d"] == 0.0 ){
+                document.getElementById("action-lat").innerText = "staying on course";
+            } else if (sampling_vars["d"] > 0.0 ) {
+                document.getElementById("action-lat").innerText = "moving " + (sampling_vars["d"]) + " m on the left";
+            } else {
+                document.getElementById("action-lat").innerText = "moving " + (-1.0 * sampling_vars["d"]) + " m on the right";
+            }
+
+            // TODO Keep it visible for the moment to debug
+            document.getElementById("action-time").innerText = "in " + (sampling_vars["t"].toFixed(1)) + " seconds";
+
+            document.getElementById("action-snap-to-road").innerText = snap_to_road ? "following the road" : "driving free";
+
+            // Report the error and make it visible if needed
+            if (response["is_feasible"]){
+                document.getElementById("infeasible-plan-warning").style.display = "none"
+                document.getElementById("waiting-for-trajectory").style.display = "none"
+                document.getElementById("submit_button").removeAttribute('disabled');
+            } else {
+                document.getElementById("submit_button").setAttribute('disabled', '');
+                document.getElementById("infeasibility-reason").innerText = response["infeasibility_reason"];
+                document.getElementById("infeasible-plan-warning").style.display = '';
+            }
+
+        }
+
+        async function update_the_trajectory(props){
+            // Make sure we handle the case where there's no trajectory!
+            const sampling_vars = props['sampling_vars'];
+            // This was already parsed
+            const response = props['response'];
+            const trajectory = response["trajectory"];
+            const reference_path = response["reference_path"];
+
+            // At this point, the visible trajectories are updated
+            var trajectory_placeholder = document.getElementById("the_trajectory");
+            var reference_path_placeholder = document.getElementById("the_reference_path");
+
+            // driving horizon: how many steps of the planned trajectory to follow. Defines the number of states submitted
+            var driving_horizon = parseInt(sampling_vars["p"] / 0.1) + 1;
+
+            // Note: visualize the trajectory ONLY if it was feasible!
+            var visualized_trajectory = [];
+            var planned_states_full = [];
+
+            // Store the planned states in the form for the submission
+            var planned_states_input = document.getElementById("planned_states");
+            planned_states_input.value = "";
+
+            if ( !response["infeasibility_reason"]){
+                // Build the object that will be visualized by the TrajectoryView Plugin
+                for(const state of trajectory["planned_states"]){
+                    planned_states_full.push(state);
+                    // Here we need only x, y coodinates
+                    visualized_trajectory.push([state["position_x"], state["position_y"]]);
+                }
+                // Boundary check on slice?
+                planned_states_selected = planned_states_full.slice(1, driving_horizon);
+                planned_states_input.value = JSON.stringify(planned_states_selected);
+            }
+
+            //Dispatch the custom event to refresh the GUI only if there is a trajectory to visualize
+            var evt = new CustomEvent("UpdateTrajectoryEvent", {detail : {trajectory : visualized_trajectory, horizon : driving_horizon} });
+            trajectory_placeholder.dispatchEvent(evt);
+
+            // Reference path can be huge, we can subsample it on the server!
+            var visualized_reference_path = [];
+            // Build the ref_path object that will be visualized by the TrajectoryView Plugin
+            for(const state of reference_path){
+                // Here we need only x, y coodinates
+                visualized_reference_path.push([state["position_x"], state["position_y"]]);
+            }
+
+            // Make sure we also visualize (again) the reference path
+            var rf_evt = new CustomEvent("UpdateReferencePathEvent", {detail : {reference_path : visualized_reference_path} });
+            reference_path_placeholder.dispatchEvent(rf_evt);
+        }
+
+        async function get_the_trajectory_from_API(delta_dictionary) {
+            // Enable caching of trajectory based on v, d, t, h but not p (p is local)
+
+            // Get the sampling parameters from the hidden fields
+            const current_speed_m_s = {{ v }};
+            // The Boolean value of 0 (zero) is false; any other element, is true
+            const snap_to_road = get_snap_to_road();
+
+            var sampling_vars = {};
+            var sampling_var_names = ["v", "d", "t", "h", "p"];
+
+            for (let index = 0; index < sampling_var_names.length; index++) {
+                var original_value = document.getElementById("sampling_" + sampling_var_names[index] ).value;
+                sampling_vars[ sampling_var_names[index] ] = parseFloat( original_value );
+
+                // console.log(sampling_var_names[index] + " = " + sampling_vars[ sampling_var_names[index] ]);
+                // Apply modifications - https://stackoverflow.com/questions/8312459/iterate-through-object-properties
+                if (Object.prototype.hasOwnProperty.call(delta_dictionary, sampling_var_names[index])) {
+                    // console.log("Updating value of " + sampling_var_names[index]);
+                    sampling_vars[ sampling_var_names[index] ] = sampling_vars[ sampling_var_names[index] ] + parseFloat(delta_dictionary[ sampling_var_names[index] ]);
+                    // console.log("Done. New value " + sampling_vars[ sampling_var_names[index] ]);
+                    // Storing the updated value in the hidden field
+                    document.getElementById("sampling_" + sampling_var_names[index] ).value = sampling_vars[ sampling_var_names[index] ];
+                }
+            }
+
+            // At this point we have a nice dictionary containing all the sampling variables.
+
+
+            // What do we do if parameters are invalid?
+            //if (!validate_vars(sampling_vars)) {
+            //    return await onError("Parameters are incorrect")
+            // }
+
+            // Show the "waiting" message and hide any error message
+            document.getElementById("infeasible-plan-warning").style.display = "none";
+            document.getElementById("waiting-for-trajectory").style.display = '';
+
+            // Get the trajectory data from the API
+            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+            var the_API_URL = "{{host_url}}api/scenarios/{{scenario_id}}/drivers/{{driver_id}}/states/{{initial_timestamp}}/trajectory"
+            the_API_URL = the_API_URL + "?";
+            the_API_URL = the_API_URL + "v=" + sampling_vars["v"] + "&";
+            the_API_URL = the_API_URL + "d=" + sampling_vars["d"] + "&";
+            the_API_URL = the_API_URL + "t=" + sampling_vars["t"] + "&";
+            the_API_URL = the_API_URL + "h=" + sampling_vars["h"] + "&";
+            the_API_URL = the_API_URL + "s=" + snap_to_road;
+
+            var props = {
+                    "sampling_vars": sampling_vars,
+                    "current_speed": current_speed_m_s,
+                    "snap_to_road": snap_to_road
+            }
+
+            try{
+                const response = await fetch(the_API_URL);
+
+                document.getElementById("waiting-for-trajectory").style.display = "none";
+
+                const parsed = await response.json(); //json method returns a Promise!
+
+                props["response"] = parsed;
+
+                const { status } = response;
+
+                update_message(props);
+                update_the_trajectory(props);
+            }
+            catch (error){
+                // This should not happen...
+                console.log(error);
+            }
+        };
+
+        // Make sure that all the pieces are in place before loading the first trajectory
+        window.onload = function() {
+            autosize_figure()
+            // Note pass an empty object
+            get_the_trajectory_from_API({})
+        };
+    </script>
+{% endblock %}

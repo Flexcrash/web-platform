@@ -1,0 +1,214 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Scenario Designer {% endblock %}
+{% block content %}
+<h1 id="designer_h1">Set vehicle initial states and goal areas</h1>
+
+    <div id="parent_div">
+        <div id="snippet">
+            {{ html_snippet | safe }}
+        </div>
+        <div id="plot-buttons">
+
+            <form method="POST" name="new-player" action="{{ url_for('web.add_player') }}">
+                <input type="hidden" id="name" name="name" value="{{ name }}">
+                <input type="hidden" id="n_users" name="n_users" value="{{ n_users }}">
+                <input type="hidden" id="n_avs" name="n_avs" value="{{ n_avs }}">
+                <input type="hidden" id="duration" name="duration" value="{{ duration }}">
+                <input type="hidden" id="users" name="users" value="{{ users_list }}">
+                <input type="hidden" id="template_id" name="template_id" value="{{ template_id }}">
+                <input type="hidden" id="creator_user_id" name="creator_user_id" value="{{current_user.user_id}}">
+                <!-- Not sure what's the point of those three -->
+                <input type="hidden" id="id_array" name="id_array">
+                <input type="hidden" id="x_array" name="x_array">
+                <input type="hidden" id="y_array" name="y_array">
+                <label for="radioGroup"><b>Player Type:</b></label>
+                <div class="radio-group" id="radioGroup">
+                    <input type="radio" id="av" name="player_type" value="AV" checked>
+                    <label for="av">AV</label>
+                    <input type="radio" id="user" name="player_type" value="User" onclick="toggleTextField()">
+                    <label for="user">User</label>
+                </div>
+
+                <input type="text" id="newUserID" value="User ID" name="newUserID" disabled><br>
+
+                <label for="colorPicker"><b>Player Color:</b></label><br>
+                <input type="color" id="colorPicker" name="colorPicker" value="#ff0000">
+
+                <div style="padding: 0;">
+                    <label for="initialSpeed"><b>Initial Speed: </b></label>
+                    <!-- <p style="margin-bottom: 0;"><b>Initial Speed:</b><br> </p> -->
+                    <input type="range" min="1" max="25" value="5" class="slider" id="initialSpeed" name="initialSpeed" style="width: 100%;">
+                    <p><span class="slider-value" id="sliderValue" name="sliderValue">5</span> km/h</p>
+                </div>
+                <input id="add_player" type="submit" value="Add Player">
+            </form>
+        </div>
+    </div>
+
+    <form method='POST' name="vehicle-positions" action="{{ url_for('web.create') }}">
+        <!-- Those are the original values from the form -->
+        <input type="hidden" id="name" name="name" value="{{ name }}">
+        <input type="hidden" id="n_users" name="n_users" value="{{ n_users }}">
+        <input type="hidden" id="n_avs" name="n_avs" value="{{ n_avs }}">
+        <input type="hidden" id="duration" name="duration" value="{{ duration }}">
+        <input type="hidden" id="users" name="users" value="{{ users_list }}">
+        <input type="hidden" id="template_id" name="template_id" value="{{ template_id }}">
+        <input type="hidden" id="creator_user_id" name="creator_user_id" value="{{current_user.user_id}}">
+        <!-- Not sure what's the point of those three -->
+        <input type="hidden" id="id_array" name="id_array">
+        <input type="hidden" id="x_array" name="x_array" value="{{ x_array }}">
+        <input type="hidden" id="y_array" name="y_array" value="{{ y_array }}">
+
+        <!-- TODO Refresh, to visualize better the current scenario... -->
+        <input id="validate_scenario" type="submit" value="Validate Scenario"> <br>
+        <input id="submitbtn" type="submit" value="Submit">
+
+        <!-- Visualize the Form/table that the scenario plugin will operate on -->
+        <div class="row">
+            <div class="card mt-5">
+                <div class="card-body">
+                    <table class="table" id="vehicleLocationContainer">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th colspan="2" style="text-align:center;">Initial State Position (x,y)</th>
+                                <th>Initial Speed (Km/h)</th>
+                                <th colspan="2" style="text-align:center;">Goal Area (x,y)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for av_id in range(1, n_avs+1) %}
+                            <tr>
+                                <td>AV_{{av_id}} </td>
+                                <td>
+                                    <input type="text" name="AV_{{av_id}}_x" id="AV_{{av_id}}_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="AV_{{av_id}}_y" id="AV_{{av_id}}_y" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="AV_{{av_id}}_speed" id="AV_{{av_id}}_speed" value="0.0" />
+                                </td>
+                                <td>
+                                    <input type="text" name="AV_{{av_id}}_goal_x" id="AV_{{av_id}}_goal_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="AV_{{av_id}}_goal_y" id="AV_{{av_id}}_goal_y" value="0.0" readonly />
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for ud_id in range(1, unassigned_users+1) %}
+                            <tr>
+                                <td>UD_{{ud_id}}</td>
+                                <td>
+                                    <input type="text" name="UD_{{ud_id}}_x" id="UD_{{ud_id}}_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="UD_{{ud_id}}_y" id="UD_{{ud_id}}_y" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="UD_{{ud_id}}_speed" id="UD_{{ud_id}}_speed" value="0.0" />
+                                </td>
+                                <td>
+                                    <input type="text" name="UD_{{ud_id}}_goal_x" id="UD_{{ud_id}}_goal_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="UD_{{ud_id}}_goal_y" id="UD_{{ud_id}}_goal_y" value="0.0" readonly />
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for vehicle_id in users_list %}
+                            <tr>
+                                <td>User: {{vehicle_id}}</td>
+                                <td>
+                                    <input type="text" name="U_{{vehicle_id}}_x" id="U_{{vehicle_id}}_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="U_{{vehicle_id}}_y" id="U_{{vehicle_id}}_y" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="U_{{vehicle_id}}_speed" id="U_{{vehicle_id}}_speed" value="0.0" />
+                                </td>
+                                <td>
+                                    <input type="text" name="U_{{vehicle_id}}_goal_x" id="U_{{vehicle_id}}_goal_x" value="0.0" readonly />
+                                </td>
+                                <td>
+                                    <input type="text" name="U_{{vehicle_id}}_goal_y" id="U_{{vehicle_id}}_goal_y" value="0.0" readonly />
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        var slider = document.getElementById("initialSpeed");
+        var sliderValue = document.getElementById("sliderValue")
+        // var output = document.getElementById("sl");
+
+        // Update the current slider value (each time you drag the slider handle)
+        slider.addEventListener("input", function() {
+            sliderValue.textContent = slider.value;
+        });
+
+        function selectItem(event) {
+            if (event.target.tagName === 'LI') {
+                event.target.classList.toggle('selected');
+            }
+        }
+
+        function removeSelectedItems() {
+            var list = document.getElementById('list');
+            var selectedItems = list.getElementsByClassName('selected');
+
+            // Remove selected items
+            while (selectedItems.length > 0) {
+                selectedItems[0].remove();
+            }
+        }
+
+        function addPlayer() {
+            console.log("Button pressed")
+            // var newPlayer = new FormData(document.forms[0]);
+            var newPlayer = new FormData(document.querySelector('form[name="new-player"]'))
+            var existingPlayers = new FormData(document.querySelector('form[name="vehicle-positions"]'));
+
+            var allPlayers = new FormData();
+            for (var pair of newPlayer.entries()) {
+                console.log(pair);
+                allPlayers.append(pair[0], pair[1])
+            }
+            for (var pair of existingPlayers.entries()) {
+                console.log(pair);
+                allPlayers.append(pair[0], pair[1])
+            }
+            console.log("all Players:", allPlayers);
+
+            fetch('/add_player', {
+                method: 'POST',
+                body: allPlayers
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function toggleTextField() {
+            var radio = document.getElementById('radioButton');
+            var textField = document.getElementById('textField');
+
+            // Enable the text field if the radio button is checked, otherwise disable it
+            newUserID.disabled = !user.checked;
+            newUserID.value = ""
+        }
+    </script>
+
+{% endblock %}

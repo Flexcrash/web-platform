@@ -1,0 +1,245 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Scenario {{ scenario.scenario_id }} Overview {% endblock %}
+{% block content %}
+
+<!--     Define the auto_load_image_function here -->
+    <script>
+        function auto_load_the_image(img_url) {
+            fetch(img_url, { method: 'HEAD' })
+            .then(res => {
+				if (res.ok) {
+					console.log('Image ' + img_url + ' exists.');
+					const img = document.getElementById(img_url);
+                    img.src = img_url;
+                    img.class = "scenario-slide";
+                    img.style = "height: 100%; width: 100%"
+				} else {
+					console.log('Image ' + img_url + ' does not exist.');
+					setTimeout(auto_load_the_image, 2000, img_url);
+				}
+			}).catch(err => console.log('Error fetching image' + img_url + ' :', err));
+        }
+    </script>
+
+    <div class="container">
+
+        <h2> Scenario {{ scenario.scenario_id }} Overview </h2>
+        <p>
+            <table class="scenario-overview">
+                <tbody>
+                    <tr>
+                        <td>Scenario Name:</td>
+                        <td>{{ scenario.name }}</td>
+                    </tr>
+                    {% if scenario.status.value != "DONE" %}
+                    <tr>
+                        <td>Max Duration:</td>
+                        <td>{{ scenario.duration }} simulation steps</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td>Effective Duration:</td>
+                        <td> {{ scenario_state_dtos|length - 1 }} out of {{ scenario.duration }} simulation steps</td>
+                    </tr>
+                    {% endif  %}
+                    <tr>
+                        <td>Scenario Owner:</td>
+                        <td>{{ scenario.owner.username }}
+                            {% if current_user.user_id == scenario.owner.user_id %}
+                                (This is you!)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Scenario Status:</td>
+                        {% if scenario.status.value == "WAITING" %}
+                            <td>{{ scenario.status.value }} for <b>{{ how_many_users_missing }}</b> Users and <b>{{ how_many_av_missing }}</b> AVs</td>
+                        {% else %}
+                            <td>{{ scenario.status.value }}</td>
+                        {% endif%}
+                    </tr>
+                    {% if scenario.drivers|length > 0 %}
+                        <tr>
+                            <td>Drivers:</td>
+                            <td>{{ scenario.drivers[0].user.username }}
+                            {% if current_user.user_id == scenario.drivers[0].user.user_id %}
+                                (This is you!)
+                            {% endif %}
+                            </td>
+                            <td style="background-color:{{ scenario.drivers[0].color }}"></td>
+                        </tr>
+                        {% for driver in scenario.drivers[1:] %}
+                        <tr>
+                            <td></td>
+                            <td>{{ driver.user.username }}
+                            {% if current_user.user_id == driver.user.user_id %}
+                                (This is you!)
+                            {% endif %}
+                            </td>
+                            <td style="background-color:{{ driver.color }}"></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>Drivers:</td>
+                            <td>No drivers registered yet.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </p>
+    </div>
+
+    <!-- Actions Visualization -->
+    <div class="container">
+        <h4 id="action-title">Scenario Actions</h4>
+        {% if scenario.status.value == "WAITING" %}
+            {% if current_user_is_driving %}
+                <form action="{{ url_for('web.leave_scenario') }}" method="post">
+                    <input type="hidden" id="scenario_id" name="scenario_id" value="{{ scenario.scenario_id }}">
+                    <input type='submit' value="Leave Scenario" class='btn'>
+                </form>
+            {% else %}
+                    <form action="{{ url_for('web.join_scenario') }}" method="post">
+                        <input type="hidden" id="scenario_id" name="scenario_id" value="{{ scenario.scenario_id }}">
+                        <input type='submit' value="Join Scenario" class='btn'>
+                    </form>
+            {% endif %}
+        {% endif %}
+
+        {% if scenario.status.value == "DONE" %}
+            <a type="button" class="btn btn-primary"
+               href="{{ download_file_url }}"  download="">Export as CommonRoad XML</a>
+        {% elif scenario.status.value != "WAITING" %}
+            {% if current_user_is_driving and current_user_driver_state.status.value != "CRASHED" and current_user_driver_state.status.value != "GOAL_REACHED" %}
+                <a type="button" class="btn btn-primary"
+                   href="{{ url_for('web.scenario_state', scenario_id = scenario.scenario_id, timestamp=current_user_driver_state.timestamp) }}">
+                    Drive !
+                </a>
+            {% else %}
+                {% if not current_user_is_driving %} <p>You are not driving in this scenario!</p>
+                {% elif current_user_driver_state.status.value == "CRASHED" %}<p>You crashed!</p>
+                {% elif current_user_driver_state.status.value == "GOAL_REACHED" %}<p>You reached the goal area!</p>
+                {% else %} <p>There are no actions available for you in this scenario.</p>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- States slide show -->
+    <div class="container">
+        {% if scenario.status.value != "WAITING" %}
+            <h4>Scenario States</h4>
+            <div id="state-slideshow">
+                <!-- Images -->
+                <div class="slideshow-container">
+                {% for scenario_image_url in scenario_image_urls %}
+                    <img id="{{ scenario_image_url }}" class="scenario-slide" style="height: 100%; width: 100%" src="{{ url_for('static', filename='spinner.gif') }}" href="">
+                {% endfor %}
+                    <!-- Previous and Next arrows -->
+                    <a class="prev" style="text-decoration:none" onclick="changeSlide(-1)">&#10094;</a>
+                    <a class="next" style="text-decoration:none" onclick="changeSlide(1)">&#10095;</a>
+                </div>
+           </div>
+            <!-- Slide counter -->
+            <div class="slide-counter" id="slideCounter"></div>
+            <!-- Image slider -->
+            <input type="range" id="slider" min="0" max="" step="1" onchange="updateSlide(this.value)" style="background-color: #000000; margin-top: 30px;">
+        {% endif %}
+    </div>
+
+
+    <!-- Link to all the states -->
+    {% if scenario.status.value != "WAITING" %}
+        <div class="container">
+            <div id="cards-container" class="container">
+                <h4>Link to Scenario States at different simulation steps</h4>
+                {% for scenario_state_dto in scenario_state_dtos %}
+                    <p>
+                        {% if scenario_state_dto['status'].value == "DONE" %}
+                        <a href="{{ url_for('web.scenario_state_static', scenario_id = scenario.scenario_id, timestamp=scenario_state_dto['timestamp']) }}">
+                            State at simulation step {{ scenario_state_dto['timestamp'] }} -
+                            {{ scenario_state_dto['status'].value }}
+                        </a>
+                        {% elif scenario_state_dto['status'].value == "ACTIVE" and current_user_is_driving %}
+
+                            {% if current_user_driver_state.status.value != "CRASHED" and current_user_driver_state.status.value != "GOAL_REACHED" %}
+                                <!-- Why pointing to state and not actionable state ? -->
+                                <a href="{{ url_for('web.scenario_state', scenario_id = scenario.scenario_id, timestamp=scenario_state_dto['timestamp']) }}">
+                                    State at simulation step {{ scenario_state_dto['timestamp'] }} -
+                                    {{ scenario_state_dto['status'].value }}
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('web.scenario_state_static', scenario_id = scenario.scenario_id, timestamp=scenario_state_dto['timestamp']) }}">
+                                    State at simulation step {{ scenario_state_dto['timestamp'] }} -
+                                    {{ scenario_state_dto['status'].value }}
+                                </a>
+                            {% endif%}
+                        {% elif scenario_state_dto['status'].value == "ACTIVE" and not current_user_is_driving %}
+                        <a href="{{ url_for('web.scenario_state_static', scenario_id = scenario.scenario_id, timestamp=scenario_state_dto['timestamp']) }}">
+                            State at simulation step {{ scenario_state_dto['timestamp'] }} -
+                            {{ scenario_state_dto['status'].value }}
+                        </a>
+                        {% else %}
+                        <div>
+                            State at simulation step {{ scenario_state_dto['timestamp'] }} -
+                            {{ scenario_state_dto['status'].value }}
+                        </div>
+                        {% endif %}
+
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+<script>
+
+	// TODO: We need to configure to auto_load only the images currently visualized in the slider
+    {% for scenario_image_url in scenario_image_urls %}
+        auto_load_the_image("{{ scenario_image_url }}");
+    {% endfor %}
+
+      var slideIndex = 0;
+      // Make sure we consider only the images that represent slides
+      var slides = document.getElementsByClassName("scenario-slide");
+      var slideCounter = document.getElementById("slideCounter");
+      var slider = document.getElementById("slider");
+
+    // Set the maximum value of the slider dynamically
+    slider.setAttribute("max", slides.length - 1);
+
+      function showSlide(n) {
+        if (n < 0) {
+          slideIndex = slides.length - 1;
+        } else if (n >= slides.length) {
+          slideIndex = 0;
+        }
+
+        for (var i = 0; i < slides.length; i++) {
+          slides[i].style.display = "none";
+        }
+
+        slides[slideIndex].style.display = "block";
+
+        // Update the slide counter
+        slideCounter.textContent = "Simulation step " + slideIndex + " of " + (slides.length - 1);
+
+        // Update the slider value
+        slider.value = slideIndex;
+      }
+
+      function changeSlide(n) {
+        showSlide(slideIndex += n);
+      }
+
+      function updateSlide(n) {
+        showSlide(slideIndex = parseInt(n));
+      }
+
+      // Show the initial slide
+      showSlide(slideIndex);
+
+</script>
+{% endblock %}

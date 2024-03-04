@@ -1,0 +1,9 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "errors/error.html" %}
+{% block page_title %}Server Error{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1 align="center" style="padding-top: 10vw;">Internal Server Error</h1>
+        <p align="center">The server encountered an internal error and was unable to complete your request.</p>
+    </div>
+{% endblock %}

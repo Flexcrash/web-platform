@@ -3,7 +3,7 @@
 
 # Flexcrash Platform
 This repository contains the code of the Flexcrash platform for studying live interactions between human drivers and automated vehicles (AV).
-The **current version of the platform is 1.0** (See deliverable D1.2)
+The **current version of the platform is 2.0** (See the official Deliverable D1.2 for more details about the design and operation of the platform).
 
 
 ## About Flexcrash
@@ -20,8 +20,16 @@ Discover the project at [https://flexcrash-project.eu/about-flexcrash/](https://
 
 The Flexcrash project has received funding from the Horizon Europe programme under grant agreement No. 101069674. This work reflects only the author's view. Neither the European Commission nor the CINEA is responsible for any use that may be made of the information it contains.
 
+### Contributors:
+
+- Dr. Alessio Gambi, PI/Lead Developer (alessiogambi)
+- Benedikt Steininger (Stoneymon)
+- Mykhailo Poienko (michaelpoi)
+- David Bobek (davidbobek)
+- Shreya Mattews (shreyavmatt)
+
 ### Get in touch!
-For any question, send us an e-mail at [info@flexcrash-project.eu](info@flexcrash-project.eu) and we will reply to you as soon as possible.
+For any question, contact us via e-mail at [info@flexcrash-project.eu](info@flexcrash-project.eu).
 
 ## Structure of the repository
 
@@ -29,18 +37,19 @@ For any question, send us an e-mail at [info@flexcrash-project.eu](info@flexcras
 .
 ├── LICENSE
 ├── README.md
-├── code
+├── deploy
 ├── documentation
-│   └── README.md
+├── entrypoint.sh
+├── requirements.txt
+├── src
 └── videos
-    └── README.md
 ```
 
-The `root` folder contains the LICENSE and this README file.
+The `root` folder contains the LICENSE, `entrypoint.sh`, `requirements.txt`, and this README file.
 
-The `code` folder contains the code of the platform.
+The `src` folder contains the source code of the platform.
 
-> Note: At the moment, the platform relies on some (closed-source) code kindly provided by [Dr. Gerald Wuersching from TUM](https://www.ce.cit.tum.de/air/people/gerald-wuersching-msc/) that we cannot release in this repository. Please contact Dr. Gerald Wuersching at [gerald.wuersching@tum.de](mailto:gerald.wuersching@tum.de) to obtain a copy of the `commonroad_rp` module.
+The `deploy` folder contains the necessary scripts to deploy the application inside `docker` using `docker compose`.
 
 The `documentation` folder contains instruction to setup and run the platform.
 

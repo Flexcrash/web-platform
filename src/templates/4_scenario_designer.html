@@ -1,0 +1,92 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "base.html" %}
+{% block page_title %} Interactive Scenario State View {% endblock %}
+{% block content %}
+    <h1 id="designer_h1">Scenario Designer</h1>
+    <p>
+        On this page, you can add and configure the vehicles that will participate in the scenario.
+        Currently, scenarios can contain up to <mark>8</mark> vehicles.
+    </p>
+
+    <!-- Show the vehicles and the planner/selected trajectories -->
+    <div id="cards-container" class="container">
+        <div id="scenario-viz" class="card center scenario-viz">
+            {{ html_snippet | safe }}
+        </div>
+    </div>
+
+    <!-- Visualize the main info about vehicles current state -->
+    <div class="row" >
+        <div class="card mt-5">
+            <div class="card-body">
+                <div id="plot-buttons"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <form method="POST" id="new-scenario-form" name="new-scenario" action="{{ url_for('web.create') }}">
+            <label for="name">Scenario Name</label> <input type="text" id="name" name="name" value=""> <br>
+            <label for="duration">Duration (sec)</label> <input type="number" step="0.1" id="duration" name="duration" placeholder="Duration" placeholder="5.0" value="5.0" min="0.0" onChange="updateSteps()" onclick="updateSteps()"> <br>
+            <label for="duration" id="corresponding-steps"> </label> <br>
+            <!-- <input type="hidden" id="scenario_duration" name="scenario_duration"> -->
+            <input type="hidden" id="scenario_template_id" name="scenario_template_id" value="{{ template_id }}">
+            <input type="hidden" id="creator_user_id" name="creator_user_id" value="{{ creator_user_id }}">
+            <input id="submitbtn" type="submit" value="Create Scenario">
+        </form>
+    </div>
+
+    <script>
+        // This function alters the embedded html to make it auto-resizable. Really, this should be placed into a plugin
+        function autosize_figure(){
+            // TODO We assume there's one and only one of such elements
+            var the_main_svg = document.getElementsByClassName("mpld3-figure")[0];
+            the_main_svg.removeAttribute("width");
+            the_main_svg.removeAttribute("height");
+            // TODO Hardcoded values based on the fact the figure has the following size:
+            the_main_svg.setAttribute("viewBox", "50 70 700 180");
+            // TODO We assume there's one and only one of such elements
+            var toolbar_svg = document.getElementsByClassName("mpld3-toolbar")[0];
+            toolbar_svg.setAttribute("x", "50");
+            toolbar_svg.setAttribute("y", "235");
+        };
+
+        function generateScenarioName() {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            let counter = 0;
+            while (counter < 5) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                counter += 1;
+            }
+            var scenarioName = document.getElementById("name")
+            scenarioName.value = result
+        };
+
+        // Make sure that all the pieces are in place before loading the first trajectory
+        window.onload = function() {
+            autosize_figure();
+            generateScenarioName();
+        };
+
+        function updateSteps(){
+            let i = document.getElementById("duration")
+            let theDiv = document.getElementById("corresponding-steps")
+            theDiv.innerHTML = "which corresponds to " + Math.round(i.value / i.step) + " simulation steps"
+        };
+
+        function toggleTextField() {
+                var radioButton = document.getElementById('radio');
+                var textField = document.getElementById('newUserID');
+
+                // Enable the text field if the radio button is checked, otherwise disable it
+                newUserID.disabled = !human.checked;
+                newUserID.value = ""
+        };
+
+        updateSteps();
+
+    </script>
+
+{% endblock %}

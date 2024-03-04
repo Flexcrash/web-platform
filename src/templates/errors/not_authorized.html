@@ -1,0 +1,11 @@
+{# See: https://flask.palletsprojects.com/en/2.3.x/patterns/templateinheritance/ #}
+{% extends "errors/error.html" %}
+{% block page_title %}Not Found{% endblock %}
+{% block content %}
+    <div class="container" style="padding-top: 10vw;">
+        <div class="alert alert-warning" role="alert">
+            <h1 align="center">Permission Error</h1>
+            <p align="center">You may not have the correct permissions to view the page.</p>
+        </div>
+    </div>
+{% endblock %}

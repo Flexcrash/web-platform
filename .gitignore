@@ -11,6 +11,9 @@ avs_cache/
 deploy/db_password.txt
 deploy/db_root_password.txt
 deploy/flask_password.txt
+deploy/admin_user.txt
+deploy/admin_email.txt
+deploy/admin_password.txt
 
 # Do not commit make-generated files
 .setup

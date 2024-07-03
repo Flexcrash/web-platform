@@ -69,6 +69,74 @@ def time_since(date_in_seconds: int, lang = inflect.engine()):
 
 from flask import Flask
 
+def upload_basic_templates(app):
+    from persistence.database import db
+    from persistence.mixed_scenario_template_data_access import MixedTrafficScenarioTemplateDAO
+
+    with app.app_context():
+        scenario_template_dao = MixedTrafficScenarioTemplateDAO(app.config)
+        # TODO Upload LTAP, Intersections and similar cases automatically!
+
+        # For manual testing and demonstration we use ONLY the simplest scenario template
+        # template_files = ["./tests/scenario_templates/template_1.xml",
+        #                     "./tests/scenario_templates/template_2.xml",
+        #                     "./tests/scenario_templates/template_3.xml"]
+
+        template_files = ["./tests/scenario_templates/template_3.xml"]
+
+        for i, template_file in enumerate(template_files, start=1):
+            with open(template_file, "r") as file:
+
+                scenario_template_data = {"name": f"template_{i}",
+                                            "xml": file.read(),
+                                            "description": "A simple scenario template.",
+                                            "template_id": i
+                                            }
+                try:
+                    # We need to call this to enfore the creation of the image  
+                    scenario_template_dao.create_new_template(scenario_template_data)
+                except Exception as ex:
+                    # import traceback
+                    # print(traceback.format_exc())
+                    db.session.rollback()
+
+
+def create_default_admin_user(app):
+    # Create the Default Admin User if specified in the environment
+    admin_user_file = os.environ.get("ADMIN_USER_FILE", None)
+    admin_email_file = os.environ.get("ADMIN_EMAIL_FILE", None)
+    admin_password_file = os.environ.get("ADMIN_PASSWORD_FILE", None)
+
+    if admin_user_file and admin_email_file and admin_password_file:
+        
+        from persistence.database import db
+        from persistence.user_data_access import UserDAO
+
+        admin_user = None
+        admin_email = None
+        admin_password = None
+
+        with open(admin_user_file, "r") as f:
+            admin_user = f.read().rstrip('\n')
+
+        with open(admin_email_file, "r") as f:
+            admin_email = f.read().rstrip('\n')
+
+        with open(admin_password_file, "r") as f:
+            admin_password = f.read().rstrip('\n')
+
+        print(f"\n Creating Initial Admin User {admin_user} with Email {admin_email} \n")
+
+        with app.app_context():
+            # This might fail if the user already exists since we are concurrently inserting it
+            # TODO One would check if another admin user exists, and do not create this one again
+            try:
+                user_dao = UserDAO()
+                user_dao.create_new_user({"user_id": 1, "username": admin_user, "email": admin_email, "password": admin_password})
+                user_dao.make_admin_user(1)
+            except Exception as ex:
+                # Note this one!
+                db.session.rollback()
 
 def create_app(config_filename=None):
     # As describe here: https://flask.palletsprojects.com/en/2.2.x/logging/ we need to setup logging before the app is
@@ -193,19 +261,25 @@ def create_app(config_filename=None):
     # Ensures all the image folders exist
     image_path = app.config["IMAGES_FOLDER"]
     if not os.path.exists(image_path):
-        os.makedirs(image_path)  # , mode=0o777)
+        os.makedirs(image_path, exist_ok=True)  # , mode=0o777)
     image_path = app.config["TEMPLATE_IMAGES_FOLDER"]
     if not os.path.exists(image_path):
-        os.makedirs(image_path)  # , mode=0o777)
+        os.makedirs(image_path, exist_ok=True)  # , mode=0o777)
     image_path = app.config["SCENARIO_IMAGES_FOLDER"]
     if not os.path.exists(image_path):
-        os.makedirs(image_path)  # , mode=0o777)
+        os.makedirs(image_path, exist_ok=True)  # , mode=0o777)
 
     # Manage sessions
     # app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
+    create_default_admin_user(app)
+    
+    upload_basic_templates(app)
+
     # Patch to create a temporary databased to manual e2e testing
     if app.config["TESTING"] and app.config["RESET"]:
+
+        print("\n Creating Testing Environment with Users and Templates \n")
         # At this point the db is already configured
         from persistence.database import db
         from persistence.user_data_access import UserDAO

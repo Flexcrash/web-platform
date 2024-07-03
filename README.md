@@ -22,11 +22,11 @@ The Flexcrash project has received funding from the Horizon Europe programme und
 
 ### Contributors:
 
-- Dr. Alessio Gambi, PI/Lead Developer (alessiogambi)
+- Dr. Alessio Gambi, PI/Lead Developer (alessiogambi, alessio.gambi@ait.ac.at)
 - Benedikt Steininger (Stoneymon)
 - Mykhailo Poienko (michaelpoi)
-- David Bobek (davidbobek)
 - Shreya Mattews (shreyavmatt)
+- David Bobek (davidbobek)
 
 ### Get in touch!
 For any question, contact us via e-mail at [info@flexcrash-project.eu](info@flexcrash-project.eu).
